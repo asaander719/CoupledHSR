@@ -32,3 +32,4 @@ from recbole.model.sequential_recommender.mbht import MBHT
 from recbole.model.sequential_recommender.hsr import HSR
 from recbole.model.sequential_recommender.coupledhsr import CoupledHSR
 from recbole.model.sequential_recommender.fearec import FEARec
+from recbole.model.sequential_recommender.ampl import AMPL

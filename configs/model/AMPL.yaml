@@ -1,0 +1,61 @@
+# AMPL baseline for AMPL JD/UB converted RecBole sequence datasets.
+# Copy to: configs/model/AMPL.yaml
+# Run:
+# python run_ampl_seq_sweep.py --model AMPL --dataset ampl_jd_purchase --config_files configs/model/AMPL.yaml -g 0
+
+# AMPL paper settings
+hidden_size: [50, 64, 30]
+num_layers: 1
+num_heads: 1
+inner_size: [100,128]
+dropout_prob: [0.3, 0.5]
+hidden_dropout_prob: 0.5
+attn_dropout_prob: 0.5
+hidden_act: relu
+layer_norm_eps: 1e-12
+initializer_range: 0.02
+
+# Behavior fields from convert_ampl_to_recbole_seq.py
+ITEM_TYPE_SEQ_FIELD: item_type_list
+ITEM_TYPE_FIELD: item_type
+num_behaviors: 4
+target_behavior_token: 3
+
+# Loss:
+# AMPL paper uses BCE with one negative sample.
+# BPR is usually a little more stable in RecBole sequential top-K.
+loss_type: BCE
+reg_weight: [0.0, 0.1]
+
+learning_rate: [0.001, 0.0005]
+learner: adam
+train_batch_size: 2048
+eval_batch_size: 4096
+epochs: 200
+stopping_step: 20
+eval_step: 1
+weight_decay: [0.0, 0.01]
+train_neg_sample_args: ~
+
+MAX_ITEM_LIST_LENGTH: 50
+metrics: ['Recall', 'NDCG', 'MRR']
+topk: [5, 10, 20]
+valid_metric: MRR@10
+eval_args:
+  order: TO
+  mode: full
+
+# RecBole SequentialDataset benchmark files already contain item_id_list.
+benchmark_filename: ['train', 'valid', 'test']
+alias_of_item_id: ['item_id_list']
+alias_of_item_type: ['item_type_list']
+field_separator: "\t"
+seq_separator: " "
+load_col:
+  inter: ['user_id', 'item_id_list', 'item_type_list', 'item_length', 'item_id', 'timestamp', 'item_type']
+
+
+hyper_parameters: ['hidden_size', 'dropout_prob', 'learning_rate', 'reg_weight', 'inner_size']
+
+
+show_progress: True

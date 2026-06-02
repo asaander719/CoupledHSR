@@ -34,6 +34,10 @@ import torch.nn.functional as F
 from recbole.model.abstract_recommender import SequentialRecommender
 
 
+def _config_get(config, key, default=None):
+    return config[key] if key in config else default
+
+
 class SafeSelfAttentionBlock(nn.Module):
     """Small BERT-style bidirectional self-attention block.
 
@@ -267,30 +271,30 @@ class CoupledHSR(SequentialRecommender):
         super().__init__(config, dataset)
 
         self.hidden_size = int(config["hidden_size"])
-        self.n_layers = int(config.get("n_layers", config.get("num_layers", 1)))
-        self.n_heads = int(config.get("n_heads", 2))
-        self.inner_size = int(config.get("inner_size", self.hidden_size * 4))
-        self.dropout_prob = float(config.get("hidden_dropout_prob", config.get("dropout_prob", 0.1)))
-        self.attn_dropout_prob = float(config.get("attn_dropout_prob", self.dropout_prob))
-        self.layer_norm_eps = float(config.get("layer_norm_eps", 1e-12))
-        self.hidden_act = config.get("hidden_act", "gelu")
+        self.n_layers = int(_config_get(config, "n_layers", _config_get(config, "num_layers", 1)))
+        self.n_heads = int(_config_get(config, "n_heads", 2))
+        self.inner_size = int(_config_get(config, "inner_size", self.hidden_size * 4))
+        self.dropout_prob = float(_config_get(config, "hidden_dropout_prob", _config_get(config, "dropout_prob", 0.1)))
+        self.attn_dropout_prob = float(_config_get(config, "attn_dropout_prob", self.dropout_prob))
+        self.layer_norm_eps = float(_config_get(config, "layer_norm_eps", 1e-12))
+        self.hidden_act = _config_get(config, "hidden_act", "gelu")
 
-        self.mask_ratio = float(config.get("mask_ratio", 0.2))
-        self.kernel_size = int(config.get("kernel_size", 3))
-        self.n_coup_bands = int(config.get("n_coup_bands", 8))
-        self.coupling_mode = config.get("coupling_mode", "causal")
-        self.coupling_scale = float(config.get("coupling_scale", 0.1))
-        self.hnn_residual_init = float(config.get("hnn_residual_init", -5.0))
-        self.use_hnn = bool(config.get("use_hnn", True))
-        self.use_transformer = bool(config.get("use_transformer", True))
-        self.mask_behavior_as_target = bool(config.get("mask_behavior_as_target", False))
-        self.target_behavior_token = config.get("target_behavior_token", None)
+        self.mask_ratio = float(_config_get(config, "mask_ratio", 0.2))
+        self.kernel_size = int(_config_get(config, "kernel_size", 3))
+        self.n_coup_bands = int(_config_get(config, "n_coup_bands", 8))
+        self.coupling_mode = _config_get(config, "coupling_mode", "causal")
+        self.coupling_scale = float(_config_get(config, "coupling_scale", 0.1))
+        self.hnn_residual_init = float(_config_get(config, "hnn_residual_init", -5.0))
+        self.use_hnn = bool(_config_get(config, "use_hnn", True))
+        self.use_transformer = bool(_config_get(config, "use_transformer", True))
+        self.mask_behavior_as_target = bool(_config_get(config, "mask_behavior_as_target", False))
+        self.target_behavior_token = _config_get(config, "target_behavior_token", None)
 
         self.max_len = int(config["MAX_ITEM_LIST_LENGTH"])
         # We append one mask-token position during train/test.
         self.model_seq_len = self.max_len + 1
 
-        self.initializer_range = float(config.get("initializer_range", 0.02))
+        self.initializer_range = float(_config_get(config, "initializer_range", 0.02))
         self.dataset_name = config["dataset"]
 
         # MBHT-style target behavior: usually the buy behavior token.
@@ -322,10 +326,10 @@ class CoupledHSR(SequentialRecommender):
                 for _ in range(self.n_layers)
             ])
 
-        funnel_order = config.get("funnel_order", None)
+        funnel_order = _config_get(config, "funnel_order", None)
         self.hnn_blocks = nn.ModuleList()
         if self.use_hnn:
-            hnn_layers = int(config.get("n_hnn_layers", self.n_layers))
+            hnn_layers = int(_config_get(config, "n_hnn_layers", self.n_layers))
             self.hnn_blocks = nn.ModuleList([
                 FrequencyAdaptiveCausalHamiltonian(
                     hidden_size=self.hidden_size,
@@ -364,7 +368,7 @@ class CoupledHSR(SequentialRecommender):
                         candidates.append(max(int(v) for v in mapping.values()) + 1)
                     except Exception:
                         candidates.append(len(mapping) + 1)
-        candidates.append(int(config.get("num_behaviors", 4)) + 1)
+        candidates.append(int(_config_get(config, "num_behaviors", 4)) + 1)
         # Need room for token 0 pad/mask and all behavior IDs.
         return max(candidates)
 
@@ -379,7 +383,7 @@ class CoupledHSR(SequentialRecommender):
                     return int(mapping[0])
             except Exception:
                 pass
-        return int(config.get("buy_type", config.get("target_behavior_token", 1)))
+        return int(_config_get(config, "buy_type", _config_get(config, "target_behavior_token", 1)))
 
     def _init_weights(self, module):
         if isinstance(module, nn.Linear):
@@ -545,5 +549,5 @@ class CoupledHSR(SequentialRecommender):
 
 # Backward-compatible alias: copy this file over your existing coupledhsr.py
 # and keep running `--model CoupledHSR`.
-class CoupledHSR(CoupledHSRA6):
+class CoupledHSR(CoupledHSR):
     pass
