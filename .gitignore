@@ -1,0 +1,32 @@
+# Saved models
+/saved*
+*.pth
+
+.vscode/
+.idea/
+*.pyc
+*.log
+log_tensorboard
+saved/
+*.lprof
+*.egg-info/
+docs/build/
+wandb/*
+/ray_log*
+conda/
+/dataset/
+/docs/
+/log/
+/log_tensorboard/
+/tests/
+/asset/
+*.inter 
+/run_example/
+*.ipynb 
+*.cfg
+# Ignore macOS system files
+.DS_Store
+**/.DS_Store
+
+# Ignore GitHub specific folder
+.github/

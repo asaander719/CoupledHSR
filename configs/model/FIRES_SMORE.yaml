@@ -1,0 +1,30 @@
+# FIRES-SM: SMORE-anchored Hamiltonian Spectral Fusion
+# Accuracy-first config: starts very close to SMORE, then learns FIRES residuals.
+# Drop into MMRec config/model/FIRES.yaml
+
+embedding_size: 64
+n_ui_layers: 2
+n_layers: 1
+image_knn_k: 10
+text_knn_k: 10
+dropout_rate: 0.1
+cl_loss: 0.01
+reg_weight: 1e-05
+
+# FIRES additions. Small residual init means the first epoch behaves almost
+# exactly like SMORE, avoiding the collapse seen in sequence-only FIRES.
+use_hamiltonian_filter: True
+use_graph_trajectory: True
+ham_init_alpha: -6.0
+traj_init_alpha: -6.0
+
+# side_scale = softplus(side_scale_init); 0.5413 -> 1.0, matching SMORE.
+side_scale_init: 0.541324854612918
+
+# Accuracy anchor: False matches SMORE's trainable raw image/text embeddings.
+# For low-memory ablation, set True after confirming the anchor is competitive.
+freeze_modal_features: False
+
+learning_rate: 0.001
+train_batch_size: 2048
+eval_batch_size: 4096

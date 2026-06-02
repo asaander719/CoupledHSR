@@ -1,0 +1,52 @@
+# FIRES-2D — Complex 2D Spectral Green Recommender
+# Drop-in config for the improved fires.py attached in this response.
+# Suggested first run:
+#   python main.py --model FIRES --dataset baby
+
+# ── Compact architecture ─────────────────────────────────────────────────
+d_model: 32
+num_blocks: 1
+num_heads: 2
+ff_mult: 2
+dropout: 0.1
+max_len: 50
+n_bands: 8
+score_chunk: 2048
+
+# ── Continuous multimodal compression ────────────────────────────────────
+# Replaces KMeans visual/text cluster IDs. PCA codes preserve semantic
+# directions while using tiny buffers and projections.
+modal_code_dim: 32
+modal_compress: pca
+free_raw_features: True
+
+# ── Model components / ablations ─────────────────────────────────────────
+use_visual: True
+use_text: True
+use_user_embedding: True
+use_field_attn: True
+use_spectral: True
+use_target_mod: True
+use_damping: True
+use_recency: True
+use_mlp_residual: False
+
+# ── Spectral/recency controls ────────────────────────────────────────────
+recency_tau: 10.0
+spectral_temp: 1.0
+
+# ── Optimization ─────────────────────────────────────────────────────────
+learning_rate: 0.001
+reg_weight: 1e-05
+train_batch_size: 2048
+epochs: 1000
+
+# ── Recommended small search ─────────────────────────────────────────────
+# Keep the search narrow first; the main fix is signal quality, not capacity.
+hyper_parameters: ["learning_rate", "reg_weight", "d_model", "modal_code_dim", "n_bands", "recency_tau"]
+learning_rate_choice: [0.0005, 0.001, 0.002]
+reg_weight_choice: [1e-06, 1e-05, 1e-04]
+d_model_choice: [32, 48, 64]
+modal_code_dim_choice: [16, 32, 64]
+n_bands_choice: [4, 8, 12]
+recency_tau_choice: [5.0, 10.0, 20.0]

@@ -1,0 +1,17 @@
+# FIRES-SAFE-Novel: low-memory anchor + tiny Hamiltonian spectral residual
+# Run only after FIRES_SAFE_LITE is close to SMORE.
+# The residual alpha starts near zero to avoid damaging the SMORE scaffold.
+
+n_ui_layers: 3
+n_layers: 1
+image_knn_k: 10
+text_knn_k: 15
+dropout_rate: 0.1
+cl_loss: 0.01
+reg_weight: 0.00001
+
+freeze_modal_features: True
+use_hamiltonian_residual: True
+ham_init_alpha: -10.0
+
+learning_rate_scheduler: [0.96, 50]
