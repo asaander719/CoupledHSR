@@ -1,11 +1,11 @@
-# Repo of CoupledHSR for multi-task multi-behavior seq. recommendation
+# Repo of TacoRec for multi-task multi-behavior seq. recommendation
 
 Re-convert AMPL datasets by 
 ```bash
 python convert_ampl_to_recbole_seq.py \
   --src_dir AMPL/processed_data_JD \
   --dataset_key JD \
-  --out_root RecBole/dataset/JD-50 \
+  --out_root RecBole/dataset/JD \
   --prefix ampl_jd \
   --max_len 50 \
   --train_scope union
@@ -23,7 +23,7 @@ python convert_ampl_to_recbole_seq.py \
 python convert_ampl_to_recbole_seq.py \
   --src_dir AMPL/processed_data_UB \
   --dataset_key UB \
-  --out_root RecBole/dataset/UB-50 \
+  --out_root RecBole/dataset/UB \
   --prefix ampl_ub \
   --max_len 50 \
   --train_scope union
@@ -37,21 +37,21 @@ python convert_ampl_to_recbole_seq.py \
 ```
 
 ## Run one behavior
-For JD purchase:
+For JD click:
 ```bash
 python run_ampl_seq_full.py \
-  --model CoupledHSR \
-  --dataset ampl_jd_purchase \
-  --config_files configs/model/CoupledHSR.yaml \
+  --model TacoRec \
+  --dataset ampl_jd_click \
+  --config_files configs/model/TacoRec.yaml \
   -g 0
 ```
 
-For UB purchase:
+For UB click:
 ```bash
 python run_ampl_seq_full.py \
-  --model CoupledHSR \
-  --dataset ampl_ub_purchase \
-  --config_files configs/model/CoupledHSR.yaml \
+  --model TacoRec \
+  --dataset ampl_ub_click \
+  --config_files configs/model/TacoRec.yaml \
   -g 0
 ```
 
@@ -59,27 +59,27 @@ python run_ampl_seq_full.py \
 
 JD:
 ```bash
-for b in click comment favourite purchase; do
-  python run_ampl_seq_full.py \
-    --model CoupledHSR \
-    --dataset ampl_jd_${b} \
-    --config_files configs/model/CoupledHSR.yaml \
-    -g 0
-done
+python run_tacorec_v5.py \
+  --mode final \
+  --model TacoRec \
+  --dataset_prefix ampl_jd \
+  --behaviors auto \
+  --config_files configs/model/TacoRec.yaml \
+  -g 0
 ```
 
 UB:
 ```bash
-for b in click cart favourite purchase; do
-  python run_ampl_seq_full.py \
-    --model CoupledHSR \
-    --dataset ampl_ub_${b} \
-    --config_files configs/model/CoupledHSR.yaml \
-    -g 0
-done
+python run_tacorec_v5.py \
+  --mode final \
+  --model TacoRec \
+  --dataset_prefix ampl_ub \
+  --behaviors auto \
+  --config_files configs/model/TacoRec.yaml \
+  -g 0
 ```
 
-## Reference numbers from AMPL:
+<!-- ## Reference numbers from AMPL:
 
 | Dataset | Behavior            | SASRec Rec@10 | AMPL Rec@10 | AMPL NDCG@10 |
 | ------- | ------------------- | ------------: | ----------: | -----------: |
@@ -90,7 +90,7 @@ done
 | UB      | click / examination |        0.0323 |      0.0408 |       0.0262 |
 | UB      | cart                |        0.0226 |      0.0286 |       0.0156 |
 | UB      | favourite           |        0.0200 |      0.0284 |       0.0158 |
-| UB      | purchase            |        0.0659 |      0.0975 |       0.0662 |
+| UB      | purchase            |        0.0659 |      0.0975 |       0.0662 | -->
 
 
 ## Important protocol note
@@ -122,49 +122,29 @@ Performance stats record:
 ## For baseline comparison 
 AMPL baseline
 ```bash
-python run_ampl_seq_sweep.py \
-  --model AMPL \
-  --dataset ampl_jd_purchase \
-  --config_files configs/model/AMPL.yaml \
-  -g 4 \
-  --stats_level quick
+for b in click comment favourite purchase; do
+  python run_ampl_seq_full.py \
+    --model AMPL \
+    --dataset ampl_jd_${b} \
+    --config_files configs/model/AMPL.yaml \
+    -g 0
+done
 ```
 
-CoupledHSR:
-```bash
-python run_ampl_seq_sweep.py \
-  --model CoupledHSR \
-  --dataset ampl_jd_purchase \
-  --config_files configs/model/CoupledHSR.yaml \
-  -g 4 \
-  --stats_level quick
-```
 
 ## For full stats + FLOPs
 
-only on purchase conduct grid search
+only on click conduct grid search
 ```bash
-python run_ampl_auto_grid.py \
-  --model CoupledHSR \
+python run_tacorec_v5.py \
+  --mode tune \
+  --model TacoRec \
   --dataset_prefix ampl_jd \
-  --config_files configs/model/CoupledHSR.yaml \
-  -g 5 \
-  --tune_behavior purchase \
-  --stats_level quick
+  --behaviors click \
+  --config_files configs/model/TacoRec_v5_GRID_SMALL.yaml \
+  -g 0
 ```
 
-Once the optimal parameters for Purchase have been identified, run all behaviours automatically:
-```bash
-python run_ampl_auto_grid.py \
-  --model CoupledHSR \
-  --dataset_prefix ampl_jd \
-  --config_files configs/model/CoupledHSR.yaml \
-  -g 0 \
-  --tune_behavior purchase \
-  --run_all_after_tune \
-  --reuse_tuned_behavior \
-  --stats_level quick
-```
 Samely hyperparams grid for baseline AMPL:
 ```bash
 python run_ampl_auto_grid.py \
