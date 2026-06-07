@@ -1,0 +1,16 @@
+{
+  "model": "CoupledHSR",
+  "dataset": "ampl_jd_purchase",
+  "config_files": "configs/model/CoupledHSR_AMPL_GRID.yaml",
+  "gpu_id": 4,
+  "target_behavior_token": null,
+  "train_batch_size": null,
+  "eval_batch_size": null,
+  "max_len": 50,
+  "valid_metric": null,
+  "stats_level": "full",
+  "compute_flops": true,
+  "results_dir": "saved/ampl_sweeps",
+  "seed": null,
+  "show_progress": null
+}

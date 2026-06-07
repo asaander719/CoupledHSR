@@ -1,22 +1,18 @@
-# CoupledHSR v5 config for AMPL converted RecBole sequence datasets.
-# Scalar config only. Use with run_ampl_seq_full.py, run_ampl_auto_grid.py,
-# or run_coupledhsr_ablation.py.
+# CoupledHSR v5 small grid. Use with run_ampl_auto_grid.py.
+# Recommended: tune on purchase first.
 
-hidden_size: 64
-n_layers: 3 
-n_hnn_layers: 3
-num_layers: 3
-num_heads: 2
-n_heads: 2
+hidden_size: [64, 128]
+num_layers: [1, 2]
+num_heads: 1
+n_heads: 1
 inner_size: 128
-dropout_prob: 0.3
+dropout_prob: [0.3, 0.5]
 hidden_dropout_prob: 0.3
 attn_dropout_prob: 0.3
 hidden_act: gelu
 layer_norm_eps: 1e-12
 initializer_range: 0.02
 
-# v5 core
 use_transformer: True
 use_hnn: True
 use_behavior_memory: True
@@ -24,21 +20,18 @@ use_target_residual_gate: True
 use_interaction_target_behavior: True
 causal_anchor: True
 
-# Coupling
 coupling_mode: causal
-n_coupling_bands: 8
+n_coupling_bands: [4, 8]
 n_coup_bands: 8
-coupling_scale: 0.05
+coupling_scale: [0.03, 0.05]
 kernel_size: 3
 
-# Stable residual injection
-hnn_residual_init: -6.0
-residual_warmup_steps: 500
-max_residual_scale: 0.3
+hnn_residual_init: [-7.0, -6.0]
+residual_warmup_steps: [500, 1000]
+max_residual_scale: [0.2, 0.3]
 memory_scale_init: -2.0
 alpha_reg: 0.0
 
-# AMPL-style masked next target. Keep 0.0 first for stability.
 mask_ratio: 0.0
 mask_behavior_as_target: True
 num_behaviors: 4
@@ -46,13 +39,12 @@ num_behaviors: 4
 ITEM_TYPE_SEQ_FIELD: item_type_list
 ITEM_TYPE_FIELD: item_type
 
-# Try CE first. If weak, try BCE with num_neg: 1 or 5.
-loss_type: BCE #CE
-num_neg: 5
+loss_type: ['CE', 'BCE']
+num_neg: 1
 
-learning_rate: 0.001
-train_batch_size: 4096 #128
-eval_batch_size: 4096 #256
+learning_rate: [0.001, 0.0005]
+train_batch_size: 128
+eval_batch_size: 256
 epochs: 200
 stopping_step: 20
 eval_step: 1
@@ -76,5 +68,17 @@ seq_separator: " "
 load_col:
   inter: ['user_id', 'item_id_list', 'item_type_list', 'item_length', 'item_id', 'timestamp', 'item_type']
 
-hyper_parameters: []
+hyper_parameters: [
+  'hidden_size',
+  'num_layers',
+  'dropout_prob',
+  'n_coupling_bands',
+  'coupling_scale',
+  'hnn_residual_init',
+  'residual_warmup_steps',
+  'max_residual_scale',
+  'loss_type',
+  'learning_rate'
+]
+
 show_progress: True

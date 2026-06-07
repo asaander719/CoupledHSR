@@ -1,0 +1,61 @@
+hidden_dropout_prob: 0.5
+attn_dropout_prob: 0.5
+hidden_act: gelu
+layer_norm_eps: 1e-12
+initializer_range: 0.02
+
+loss_type: CE #BCE
+
+use_transformer: True
+use_hnn: True
+coupling_mode: causal
+n_coupling_bands: 8
+hnn_residual_init: -5.0
+alpha_reg: 0.0
+mask_behavior_as_target: True
+num_behaviors: 4
+
+ITEM_TYPE_SEQ_FIELD: item_type_list
+ITEM_TYPE_FIELD: item_type
+
+
+train_batch_size: 2048 #128 #2048
+eval_batch_size: 4096 #256 #4096
+epochs: 200
+stopping_step: 20
+eval_step: 1
+learner: adam
+train_neg_sample_args: ~
+
+MAX_ITEM_LIST_LENGTH: 50
+metrics: ['Recall', 'NDCG', 'MRR']
+topk: [5, 10, 20]
+valid_metric: Recall@10
+eval_args:
+  order: TO
+  mode: full
+
+benchmark_filename: ['train', 'valid', 'test']
+alias_of_item_id: ['item_id_list']
+alias_of_item_type: ['item_type_list']
+field_separator: "\t"
+seq_separator: " "
+load_col:
+  inter: ['user_id', 'item_id_list', 'item_type_list', 'item_length', 'item_id', 'timestamp', 'item_type']
+
+# Hyperparameter sweep examples.
+hidden_size: 50 #[50, 64, 30]
+num_layers: 3 #[1, 2]
+hnn_residual_init: -5.0 #[-6.0, -5.0, -4.0]
+coupling_mode: 'causal' #['none', 'causal']
+num_heads: 1 #[1,2]
+inner_size: 100 #[100,128]
+dropout_prob: 0.5 #[0.3, 0.5, 0.7]
+kernel_size: 3 #[3, 5]
+mask_ratio: 0 #[0.0, 0.1, 0.2]
+learning_rate: 0.0005 #[0.001, 0.0005]
+weight_decay: 0.0 #[0.0, 0.01]
+hyper_parameters: ['hidden_size', 'num_layers', 'hnn_residual_init', 'coupling_mode', 'num_heads', 'inner_size', 'dropout_prob', 'kernel_size', 'mask_ratio', 'learning_rate', 'weight_decay']
+
+
+show_progress: True

@@ -585,10 +585,11 @@ class LinearAttention(nn.Module):
     """
     compute linear attention using projection E and F.
     """
-    def __init__(self, num_heads, linear_size, hidden_size, hidden_dropout_prob, attn_dropout_prob, layer_norm_eps):
+    def __init__(self, num_heads, linear_size, hidden_size, hidden_dropout_prob, attn_dropout_prob, layer_norm_eps, seq_len):
         super(LinearAttention, self).__init__()
-        self.E = nn.Linear(200, linear_size)
-        self.F = nn.Linear(200, linear_size)
+        self.seq_len = seq_len
+        self.E = nn.Linear(self.seq_len, linear_size)
+        self.F = nn.Linear(self.seq_len, linear_size)
         self.W_V = nn.Linear(hidden_size, hidden_size)
         self.W_K = nn.Linear(hidden_size, hidden_size)
         self.W_Q = nn.Linear(hidden_size, hidden_size)
@@ -621,8 +622,17 @@ class LinearAttention(nn.Module):
             key = key*mask
             value = value*mask
 
-        value = self.E(value.transpose(2, 3)).transpose(2, 3)
-        key = self.F(key.transpose(2, 3)).transpose(2, 3)
+        actual_seq_len = value.size(-1)
+        if actual_seq_len > self.seq_len:
+            raise ValueError(
+                f"Actual sequence length {actual_seq_len} exceeds configured max {self.seq_len}."
+            )
+        E_weight = self.E.weight[:, :actual_seq_len]
+        F_weight = self.F.weight[:, :actual_seq_len]
+        E_bias = self.E.bias
+        F_bias = self.F.bias
+        value = F.linear(value.transpose(2, 3), E_weight, E_bias).transpose(2, 3)
+        key = F.linear(key.transpose(2, 3), F_weight, F_bias).transpose(2, 3)
 
         scores = torch.matmul(query, key.transpose(-2, -1)) \
                  / math.sqrt(query.size(-1))
@@ -646,17 +656,29 @@ class MultiScaleAttention(nn.Module):
     a set of attention of different granularities
     """
 
-    def __init__(self, scales, n_heads, hidden_size, hidden_dropout_prob, attn_dropout_prob, layer_norm_eps):
+    def __init__(self, scales, n_heads, hidden_size, hidden_dropout_prob, attn_dropout_prob, layer_norm_eps, seq_len):
         super().__init__()
         assert hidden_size % n_heads == 0
         self.d_k = hidden_size // n_heads
         self.num_heads = n_heads
         self.scale_1 = scales[1]
         self.scale_2 = scales[2]
-        self.out_fc = nn.Linear(200+200//self.scale_1+200//self.scale_2, 200)
+        self.seq_len = seq_len
+        self.out_fc = nn.Linear(
+            self.seq_len + self.seq_len // self.scale_1 + self.seq_len // self.scale_2,
+            self.seq_len,
+        )
 
         # self.attention1 = LinearMultiheadAttention(hidden_dim, num_heads, seq_len=200, proj_k=args.linear_size)
-        self.attention1 = LinearAttention(n_heads, scales[0], hidden_size, hidden_dropout_prob, attn_dropout_prob, layer_norm_eps)
+        self.attention1 = LinearAttention(
+            n_heads,
+            scales[0],
+            hidden_size,
+            hidden_dropout_prob,
+            attn_dropout_prob,
+            layer_norm_eps,
+            seq_len=self.seq_len,
+        )
         self.attention2 = MultiHeadAttention(n_heads, hidden_size, hidden_dropout_prob, attn_dropout_prob, layer_norm_eps)
 
     def forward(self, input_tensor, attention_mask):
@@ -671,22 +693,50 @@ class MultiScaleAttention(nn.Module):
         # x, _ = self.attention1(query, key, value, key_padding_mask=mask.squeeze())
         scale_outputs = []
         scale_outputs.append(torch.reshape(x, [batch_size, seq_length, self.num_heads*self.d_k]))
-        next_input = torch.mean(input_tensor.reshape(batch_size, self.scale_1, seq_length//self.scale_1, self.num_heads*self.d_k), dim=1)
 
-        # attention over 1/scale_1 sequence
-        x = self.attention2(next_input, None)
-        scale_outputs.append(torch.reshape(x, [batch_size, seq_length//self.scale_1, self.num_heads*self.d_k]))
-        # next_input = torch.mean(x.reshape(batch_size, self.scale_2//self.scale_1, seq_length//self.scale_2, self.num_heads*self.d_k), dim=1)
-        next_input = torch.mean(input_tensor.reshape(batch_size, self.scale_2, seq_length//self.scale_2, self.num_heads*self.d_k), dim=1)
+        seg_len_1 = seq_length // self.scale_1
+        if seg_len_1 > 0:
+            truncated_len_1 = seg_len_1 * self.scale_1
+            next_input = torch.mean(
+                input_tensor[:, :truncated_len_1, :]
+                .reshape(batch_size, self.scale_1, seg_len_1, self.num_heads*self.d_k),
+                dim=1,
+            )
+            x = self.attention2(next_input, None)
+            scale_outputs.append(torch.reshape(x, [batch_size, seg_len_1, self.num_heads*self.d_k]))
+        else:
+            next_input = torch.mean(input_tensor, dim=1, keepdim=True)
+            x = self.attention2(next_input, None)
+            scale_outputs.append(torch.reshape(x, [batch_size, 1, self.num_heads*self.d_k]))
 
-
-        # attention over 1/scale_2 sequence
-        x = self.attention2(next_input, None)
-        scale_outputs.append(torch.reshape(x, [batch_size, seq_length//self.scale_2, self.num_heads*self.d_k]))
+        seg_len_2 = seq_length // self.scale_2
+        if seg_len_2 > 0:
+            truncated_len_2 = seg_len_2 * self.scale_2
+            next_input = torch.mean(
+                input_tensor[:, :truncated_len_2, :]
+                .reshape(batch_size, self.scale_2, seg_len_2, self.num_heads*self.d_k),
+                dim=1,
+            )
+            x = self.attention2(next_input, None)
+            scale_outputs.append(torch.reshape(x, [batch_size, seg_len_2, self.num_heads*self.d_k]))
+        else:
+            next_input = torch.mean(input_tensor, dim=1, keepdim=True)
+            x = self.attention2(next_input, None)
+            scale_outputs.append(torch.reshape(x, [batch_size, 1, self.num_heads*self.d_k]))
 
         output = torch.cat(scale_outputs, dim=1)
         output = torch.transpose(output, 1, 2)
-        output = self.out_fc(output)
+        actual_out_features = seq_length
+        actual_in_features = output.size(-1)
+        if (
+            actual_in_features != self.out_fc.in_features
+            or actual_out_features != self.out_fc.out_features
+        ):
+            weight = self.out_fc.weight[:actual_out_features, :actual_in_features]
+            bias = self.out_fc.bias[:actual_out_features] if self.out_fc.bias is not None else None
+            output = F.linear(output, weight, bias)
+        else:
+            output = self.out_fc(output)
         output = torch.transpose(output, 1, 2)
 
         return output
@@ -707,20 +757,37 @@ class TransformerLayer(nn.Module):
     """
 
     def __init__(
-        self, n_heads, hidden_size, intermediate_size, hidden_dropout_prob, attn_dropout_prob, hidden_act,
+        self,
+        n_heads,
+        hidden_size,
+        intermediate_size,
+        hidden_dropout_prob,
+        attn_dropout_prob,
+        hidden_act,
         layer_norm_eps,
         multiscale=False,
-        scales=None
+        scales=None,
+        seq_len=None,
     ):
         super(TransformerLayer, self).__init__()
         if multiscale:
             self.multi_head_attention = MultiScaleAttention(
-            scales, n_heads, hidden_size, hidden_dropout_prob, attn_dropout_prob, layer_norm_eps
-        )
+                scales,
+                n_heads,
+                hidden_size,
+                hidden_dropout_prob,
+                attn_dropout_prob,
+                layer_norm_eps,
+                seq_len=seq_len,
+            )
         else:
             self.multi_head_attention = MultiHeadAttention(
-            n_heads, hidden_size, hidden_dropout_prob, attn_dropout_prob, layer_norm_eps
-        )
+                n_heads,
+                hidden_size,
+                hidden_dropout_prob,
+                attn_dropout_prob,
+                layer_norm_eps,
+            )
         self.feed_forward = FeedForward(hidden_size, intermediate_size, hidden_dropout_prob, hidden_act, layer_norm_eps)
 
     def forward(self, hidden_states, attention_mask):
@@ -754,12 +821,22 @@ class TransformerEncoder(nn.Module):
         hidden_act='gelu',
         layer_norm_eps=1e-12,
         multiscale=False,
-        scales=None
+        scales=None,
+        seq_len=None,
     ):
 
         super(TransformerEncoder, self).__init__()
         layer = TransformerLayer(
-            n_heads, hidden_size, inner_size, hidden_dropout_prob, attn_dropout_prob, hidden_act, layer_norm_eps, multiscale=multiscale, scales=scales
+            n_heads,
+            hidden_size,
+            inner_size,
+            hidden_dropout_prob,
+            attn_dropout_prob,
+            hidden_act,
+            layer_norm_eps,
+            multiscale=multiscale,
+            scales=scales,
+            seq_len=seq_len,
         )
         self.layer = nn.ModuleList([copy.deepcopy(layer) for _ in range(n_layers)])
 

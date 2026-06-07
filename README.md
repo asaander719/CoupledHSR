@@ -7,14 +7,16 @@ python convert_ampl_to_recbole_seq.py \
   --dataset_key JD \
   --out_root RecBole/dataset/JD-50 \
   --prefix ampl_jd \
-  --max_len 50
+  --max_len 50 \
+  --train_scope union
 ```
 
 ```yaml
-[ampl_jd_click] train=59,670 valid=4,053 test=2,268 target_behavior=click:0
-[ampl_jd_comment] train=24,161 valid=1,841 test=895 target_behavior=comment:1
-[ampl_jd_favourite] train=7,358 valid=451 test=243 target_behavior=favourite:2
-[ampl_jd_purchase] train=209,107 valid=2,609 test=1,297 target_behavior=purchase:3
+[ampl_jd_click] raw_valid=4,053 raw_test=2,268 | seq_train=300,296 seq_valid=4,053 seq_test=2,268 target=click:0 train_scope=union
+[ampl_jd_comment] raw_valid=1,841 raw_test=895 | seq_train=300,296 seq_valid=1,841 seq_test=895 target=comment:1 train_scope=union
+[ampl_jd_favourite] raw_valid=451 raw_test=243 | seq_train=300,296 seq_valid=451 seq_test=243 target=favourite:2 train_scope=union
+[ampl_jd_purchase] raw_valid=2,609 raw_test=1,297 | seq_train=300,296 seq_valid=2,609 seq_test=1,297 target=purchase:3 train_scope=union
+[ampl_jd_union] raw_valid=28,648 raw_test=4,703 | seq_train=300,296 seq_valid=28,648 seq_test=4,703
 ```
 
 ```bash
@@ -23,13 +25,15 @@ python convert_ampl_to_recbole_seq.py \
   --dataset_key UB \
   --out_root RecBole/dataset/UB-50 \
   --prefix ampl_ub \
-  --max_len 50
+  --max_len 50 \
+  --train_scope union
 ```
 ```yaml
-[ampl_ub_click] train=104,064 valid=13,901 test=11,375 target_behavior=click:0
-[ampl_ub_cart] train=66,334 valid=4,724 test=3,773 target_behavior=cart:1
-[ampl_ub_favourite] train=21,657 valid=1,648 test=1,340 target_behavior=favourite:2
-[ampl_ub_purchase] train=496,488 valid=7,719 test=6,126 target_behavior=purchase:3
+[ampl_ub_click] raw_valid=13,901 raw_test=11,375 | seq_train=688,543 seq_valid=13,901 seq_test=11,375 target=click:0 train_scope=union
+[ampl_ub_cart] raw_valid=4,724 raw_test=3,773 | seq_train=688,543 seq_valid=4,724 seq_test=3,773 target=cart:1 train_scope=union
+[ampl_ub_favourite] raw_valid=1,648 raw_test=1,340 | seq_train=688,543 seq_valid=1,648 seq_test=1,340 target=favourite:2 train_scope=union
+[ampl_ub_purchase] raw_valid=7,719 raw_test=6,126 | seq_train=688,543 seq_valid=7,719 seq_test=6,126 target=purchase:3 train_scope=union
+[ampl_ub_union] raw_valid=83,545 raw_test=22,614 | seq_train=688,543 seq_valid=83,545 seq_test=22,614
 ```
 
 ## Run one behavior
@@ -131,19 +135,46 @@ CoupledHSR:
 python run_ampl_seq_sweep.py \
   --model CoupledHSR \
   --dataset ampl_jd_purchase \
-  --config_files configs/model/CoupledHSR_AMPL_SEQ.yaml \
+  --config_files configs/model/CoupledHSR.yaml \
   -g 4 \
   --stats_level quick
 ```
 
 ## For full stats + FLOPs
+
+only on purchase conduct grid search
 ```bash
-python run_ampl_seq_sweep.py \
+python run_ampl_auto_grid.py \
+  --model CoupledHSR \
+  --dataset_prefix ampl_jd \
+  --config_files configs/model/CoupledHSR.yaml \
+  -g 5 \
+  --tune_behavior purchase \
+  --stats_level quick
+```
+
+Once the optimal parameters for Purchase have been identified, run all behaviours automatically:
+```bash
+python run_ampl_auto_grid.py \
+  --model CoupledHSR \
+  --dataset_prefix ampl_jd \
+  --config_files configs/model/CoupledHSR.yaml \
+  -g 0 \
+  --tune_behavior purchase \
+  --run_all_after_tune \
+  --reuse_tuned_behavior \
+  --stats_level quick
+```
+Samely hyperparams grid for baseline AMPL:
+```bash
+python run_ampl_auto_grid.py \
   --model AMPL \
-  --dataset ampl_jd_purchase \
+  --dataset_prefix ampl_jd \
   --config_files configs/model/AMPL.yaml \
-  -g 4 \
-  --stats_level full \
-  --compute_flops
+  -g 0 \
+  --tune_behavior purchase \
+  --run_all_after_tune \
+  --reuse_tuned_behavior \
+  --stats_level quick
 ```
 

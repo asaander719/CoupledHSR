@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-CoupledHSR v5 — Target-conditioned Frequency-Adaptive Causal Coupling
+TacoRec — Target-conditioned Frequency-Adaptive Causal Coupling
 for AMPL-style multi-task multi-behavior sequential recommendation.
 
 Compared with v4/A6, v5 adds three practical changes:
@@ -21,9 +21,9 @@ Compared with v4/A6, v5 adds three practical changes:
    CE/BCE/BPR are supported for quick protocol comparison.
 
 Drop-in usage:
-    cp CoupledHSR_v5.py recbole/model/sequential_recommender/coupledhsr.py
-    python run_ampl_seq_full.py --model CoupledHSR --dataset ampl_jd_purchase \
-        --config_files configs/model/CoupledHSR_v5.yaml -g 0
+    cp TacoRec.py recbole/model/sequential_recommender/coupledhsr.py
+    python run_ampl_seq_full.py --model TacoRec --dataset ampl_jd_purchase \
+        --config_files configs/model/TacoRec.yaml -g 0
 """
 
 from __future__ import annotations
@@ -353,7 +353,7 @@ class TargetConditionedBehaviorMemory(nn.Module):
         return self.query(x, summaries, target_emb)
 
 
-class CoupledHSR(SequentialRecommender):
+class TacoRec(SequentialRecommender):
     """v5 model."""
 
     def __init__(self, config, dataset):
@@ -747,6 +747,6 @@ class CoupledHSR(SequentialRecommender):
         return scores.gather(1, interaction[self.ITEM_ID].view(-1, 1)).squeeze(1)
 
 
-# RecBole looks for class name equal to --model CoupledHSR.
-class CoupledHSR(CoupledHSR):
+# RecBole looks for class name equal to --model TacoRec.
+class TacoRec(TacoRec):
     pass

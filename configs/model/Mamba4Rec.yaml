@@ -1,0 +1,62 @@
+# Mamba4Rec-MB config for AMPL-converted RecBole benchmark files.
+# Behavior-aware Mamba baseline: item + behavior + position embedding,
+# target-behavior masked anchor, full-ranking evaluation.
+
+hidden_size: 64
+num_layers: 1 #2
+inner_size: 128  #256
+dropout_prob: 0.3
+hidden_dropout_prob: 0.3
+layer_norm_eps: 1e-12
+initializer_range: 0.02
+
+# Mamba hyperparameters
+d_state: 32 #16
+d_conv: 4
+expand: 2
+fallback_to_gru: False
+
+# Multi-behavior adaptation
+use_behavior_embedding: True
+use_position_embedding: True
+use_interaction_target_behavior: True
+mask_behavior_as_target: True
+num_behaviors: 4
+ITEM_TYPE_SEQ_FIELD: item_type_list
+ITEM_TYPE_FIELD: item_type
+
+# Loss
+loss_type: CE
+num_neg: 1
+
+# Optimization
+learning_rate: 0.001
+train_batch_size: 2048 #512
+eval_batch_size: 4096 #1024
+epochs: 200
+stopping_step: 20
+eval_step: 1
+weight_decay: 0.0
+learner: adam
+train_neg_sample_args: ~
+
+# Dataset fields
+MAX_ITEM_LIST_LENGTH: 50
+benchmark_filename: ['train', 'valid', 'test']
+alias_of_item_id: ['item_id_list']
+alias_of_item_type: ['item_type_list']
+field_separator: "\t"
+seq_separator: " "
+load_col:
+  inter: ['user_id', 'item_id_list', 'item_type_list', 'item_length', 'item_id', 'timestamp', 'item_type']
+
+# Evaluation
+metrics: ['Recall', 'NDCG', 'MRR']
+topk: [10, 20]
+valid_metric: Recall@10
+eval_args:
+  order: TO
+  mode: full
+
+hyper_parameters: []
+show_progress: True

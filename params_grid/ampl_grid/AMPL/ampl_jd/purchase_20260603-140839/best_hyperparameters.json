@@ -1,0 +1,25 @@
+{
+  "best_hyperparameters": {
+    "learning_rate": 0.001
+  },
+  "best_valid_score": 0.1388,
+  "best_valid_result": {
+    "recall@10": 0.1388,
+    "recall@20": 0.2024,
+    "ndcg@10": 0.0643,
+    "ndcg@20": 0.0802,
+    "mrr@10": 0.0423,
+    "mrr@20": 0.0466
+  },
+  "test_result_at_best_valid": {
+    "recall@10": 0.0948,
+    "recall@20": 0.1488,
+    "ndcg@10": 0.0533,
+    "ndcg@20": 0.0668,
+    "mrr@10": 0.0408,
+    "mrr@20": 0.0444
+  },
+  "dataset": "ampl_jd_purchase",
+  "behavior": "purchase",
+  "model": "AMPL"
+}

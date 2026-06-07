@@ -69,7 +69,8 @@ class MBHT(SequentialRecommender):
                 hidden_act=self.hidden_act,
                 layer_norm_eps=self.layer_norm_eps,
                 multiscale=True,
-                scales=config["scales"]
+                scales=config["scales"],
+                seq_len=self.max_seq_length + 1,
             )
         else:
             self.trm_encoder = TransformerEncoder(
@@ -372,13 +373,16 @@ class MBHT(SequentialRecommender):
 
     def calculate_loss(self, interaction):
         item_seq = interaction[self.ITEM_SEQ]
-        session_id = interaction['session_id']
+        session_id = interaction[self.USER_ID] if self.USER_ID in interaction else None
         item_type = interaction["item_type_list"]
         last_buy = interaction["item_id"]
         masked_item_seq, pos_items, masked_index, item_type_seq = self.reconstruct_train_data(item_seq, item_type, last_buy)
 
         mask_nums = torch.count_nonzero(pos_items, dim=1)
-        seq_output = self.forward(masked_item_seq, item_type_seq, mask_positions_nums=(masked_index, mask_nums), session_id=session_id)
+        if session_id is not None:
+            seq_output = self.forward(masked_item_seq, item_type_seq, mask_positions_nums=(masked_index, mask_nums), session_id=session_id)
+        else:
+            seq_output = self.forward(masked_item_seq, item_type_seq, mask_positions_nums=(masked_index, mask_nums))
 
         pred_index_map = self.multi_hot_embed(masked_index, masked_item_seq.size(-1))  # [B*mask_len max_len]
         # [B mask_len] -> [B mask_len max_len] multi hot
@@ -413,7 +417,7 @@ class MBHT(SequentialRecommender):
         return total_loss
 
     def full_sort_predict(self, interaction):
-        item_seq = interaction['item_id_list']
+        item_seq = interaction[self.ITEM_SEQ]
         type_seq = interaction['item_type_list']
         item_seq_len = torch.count_nonzero(item_seq, 1)
         item_seq, type_seq = self.reconstruct_test_data(item_seq, item_seq_len, type_seq)
@@ -426,7 +430,7 @@ class MBHT(SequentialRecommender):
         return scores
 
     def customized_sort_predict(self, interaction):
-        item_seq = interaction['item_id_list']
+        item_seq = interaction[self.ITEM_SEQ]
         type_seq = interaction['item_type_list']
         truth = interaction['item_id']
         if self.dataset == "ijcai_beh":

@@ -1,0 +1,25 @@
+{
+  "best_hyperparameters": {
+    "dropout_prob": 0.1
+  },
+  "best_valid_score": 0.1223,
+  "best_valid_result": {
+    "recall@10": 0.1223,
+    "recall@20": 0.1847,
+    "ndcg@10": 0.0545,
+    "ndcg@20": 0.0701,
+    "mrr@10": 0.0344,
+    "mrr@20": 0.0386
+  },
+  "test_result_at_best_valid": {
+    "recall@10": 0.0817,
+    "recall@20": 0.1411,
+    "ndcg@10": 0.0372,
+    "ndcg@20": 0.0521,
+    "mrr@10": 0.0238,
+    "mrr@20": 0.0279
+  },
+  "dataset": "ampl_jd_purchase",
+  "behavior": "purchase",
+  "model": "CoupledHSR"
+}
